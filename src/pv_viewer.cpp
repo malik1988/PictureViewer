@@ -39,7 +39,7 @@ HWND ViewerWindow::Create(HINSTANCE instance, const std::wstring& initialFile, i
         WS_EX_APPWINDOW | WS_EX_ACCEPTFILES,
         kClassName,
         L"Picture Viewer",
-        WS_POPUP,
+        WS_POPUP | WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX,
         x, y, width, height,
         nullptr, nullptr, instance, window);
 
@@ -99,9 +99,30 @@ LRESULT ViewerWindow::HandleMessage(UINT message, WPARAM wParam, LPARAM lParam) 
     case WM_NCHITTEST:
         return OnNcHitTest(lParam);
 
+    // 保留粗框尺寸以启用原生贴靠，同时把边框完全去掉，实现真正的无边框外观。
+    case WM_NCCALCSIZE: {
+        if (wParam && hwnd_ && ::IsZoomed(hwnd_)) {
+            auto* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+            MONITORINFO monitor{};
+            monitor.cbSize = sizeof(monitor);
+            if (::GetMonitorInfo(::MonitorFromWindow(hwnd_, MONITOR_DEFAULTTONEAREST),
+                                 &monitor)) {
+                params->rgrc[0] = monitor.rcWork;
+            }
+        }
+        return 0;
+    }
+
     case WM_GETMINMAXINFO: {
         auto* info = reinterpret_cast<MINMAXINFO*>(lParam);
         info->ptMinTrackSize = { 480, 320 };
+        MONITORINFO monitor{};
+        monitor.cbSize = sizeof(monitor);
+        if (::GetMonitorInfo(::MonitorFromWindow(hwnd_, MONITOR_DEFAULTTONEAREST), &monitor)) {
+            info->ptMaxPosition = { monitor.rcWork.left, monitor.rcWork.top };
+            info->ptMaxSize = { monitor.rcWork.right - monitor.rcWork.left,
+                                monitor.rcWork.bottom - monitor.rcWork.top };
+        }
         return 0;
     }
 
@@ -194,6 +215,9 @@ void ViewerWindow::OnDestroy() {
 void ViewerWindow::OnSize(int width, int height) {
     clientWidth_ = width;
     clientHeight_ = height;
+    if (!fullscreen_) {
+        maximized_ = ::IsZoomed(hwnd_) != FALSE;
+    }
     RecomputeBarLayout(width);
 
     ScopedWindowDc screenDc(hwnd_);
@@ -224,19 +248,19 @@ void ViewerWindow::OnPaint() {
     if (backBuffer_ && backBuffer_->Dc()) {
         Renderer::Draw(backBuffer_->Dc(), client, document_.get(), view_,
                        infoText_, buttons_, hoveredButton_,
-                       showBar, maximized_, fullscreen_);
+                       showBar, maximized_, pinned_, fullscreen_);
         backBuffer_->Present(hdc, clientWidth_, clientHeight_);
     } else {
         Renderer::Draw(hdc, client, document_.get(), view_,
                        infoText_, buttons_, hoveredButton_,
-                       showBar, maximized_, fullscreen_);
+                       showBar, maximized_, pinned_, fullscreen_);
     }
 
     ::EndPaint(hwnd_, &ps);
 }
 
 LRESULT ViewerWindow::OnNcHitTest(LPARAM lParam) {
-    if (maximized_ || fullscreen_) {
+    if (fullscreen_) {
         return HTCLIENT;
     }
 
@@ -245,20 +269,28 @@ LRESULT ViewerWindow::OnNcHitTest(LPARAM lParam) {
     RECT client{};
     ::GetClientRect(hwnd_, &client);
 
-    const int m = kResizeBorder;
-    const bool left = pt.x < m;
-    const bool right = pt.x >= client.right - m;
-    const bool top = pt.y < m;
-    const bool bottom = pt.y >= client.bottom - m;
+    // 标题栏交给系统按 HTCAPTION 处理，这样拖到屏幕边缘会自动贴靠排版，
+    // 双击标题栏最大化也由系统完成；按钮区域保留为 HTCLIENT 以便点击。
+    const int barHeight = (std::min)(Renderer::kTopBarHeight, clientHeight_);
+    if (pt.y >= 0 && pt.y < barHeight) {
+        return HitTestBar(pt) == BarButton::None ? HTCAPTION : HTCLIENT;
+    }
 
-    if (left && top)    return HTTOPLEFT;
-    if (right && top)   return HTTOPRIGHT;
-    if (left && bottom) return HTBOTTOMLEFT;
-    if (right && bottom) return HTBOTTOMRIGHT;
-    if (left)           return HTLEFT;
-    if (right)          return HTRIGHT;
-    if (top)            return HTTOP;
-    if (bottom)         return HTBOTTOM;
+    if (!maximized_) {
+        const int m = kResizeBorder;
+        const bool left = pt.x < m;
+        const bool right = pt.x >= client.right - m;
+        const bool top = pt.y < m;
+        const bool bottom = pt.y >= client.bottom - m;
+
+        if (left && top)     return HTTOPLEFT;
+        if (right && top)    return HTTOPRIGHT;
+        if (left && bottom)  return HTBOTTOMLEFT;
+        if (right && bottom) return HTBOTTOMRIGHT;
+        if (left)            return HTLEFT;
+        if (right)           return HTRIGHT;
+        if (bottom)          return HTBOTTOM;
+    }
     return HTCLIENT;
 }
 
@@ -293,22 +325,11 @@ void ViewerWindow::OnLButtonDown(POINT pt) {
         case BarButton::Fit:        FitToWindow(true); return;
         case BarButton::Minimize:   ::ShowWindow(hwnd_, SW_MINIMIZE); return;
         case BarButton::Maximize:   ToggleMaximize(); return;
+        case BarButton::Pin:        TogglePin(); return;
         case BarButton::Fullscreen: ToggleFullscreen(); return;
         case BarButton::Close:      ::PostMessageW(hwnd_, WM_CLOSE, 0, 0); return;
         default:
             break;
-        }
-
-        // 点击信息栏空白处：拖动无边框窗口（最大化状态下不移动）。
-        if (!maximized_) {
-            POINT screen = pt;
-            ::ClientToScreen(hwnd_, &screen);
-            RECT window{};
-            ::GetWindowRect(hwnd_, &window);
-            windowDragStart_ = screen;
-            windowPosStart_ = { window.left, window.top };
-            draggingWindow_ = true;
-            ::SetCapture(hwnd_);
         }
         return;
     }
@@ -333,17 +354,6 @@ void ViewerWindow::OnMouseMove(POINT pt) {
         track.dwFlags = TME_LEAVE;
         track.hwndTrack = hwnd_;
         mouseTracking_ = ::TrackMouseEvent(&track) != FALSE;
-    }
-
-    if (draggingWindow_) {
-        POINT screen = pt;
-        ::ClientToScreen(hwnd_, &screen);
-        const int dx = screen.x - windowDragStart_.x;
-        const int dy = screen.y - windowDragStart_.y;
-        ::SetWindowPos(hwnd_, nullptr,
-                       windowPosStart_.x + dx, windowPosStart_.y + dy,
-                       0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-        return;
     }
 
     const BarButton hovered = HitTestBar(pt);
@@ -375,10 +385,6 @@ void ViewerWindow::OnMouseMove(POINT pt) {
 }
 
 void ViewerWindow::OnLButtonUp() {
-    if (draggingWindow_) {
-        draggingWindow_ = false;
-        ::ReleaseCapture();
-    }
     if (dragging_) {
         dragging_ = false;
         dragMoved_ = false;
@@ -419,6 +425,11 @@ void ViewerWindow::OnKeyDown(WPARAM key) {
 
     case VK_F11:
         ToggleFullscreen();
+        break;
+
+    case 'P':
+    case 'p':
+        TogglePin();
         break;
 
     case VK_LEFT:
@@ -557,6 +568,7 @@ BarButton ViewerWindow::HitTestBar(POINT pt) const {
     if (::PtInRect(&buttons_.fit, pt))        return BarButton::Fit;
     if (::PtInRect(&buttons_.minimize, pt))   return BarButton::Minimize;
     if (::PtInRect(&buttons_.maximize, pt))   return BarButton::Maximize;
+    if (::PtInRect(&buttons_.pin, pt))        return BarButton::Pin;
     if (::PtInRect(&buttons_.fullscreen, pt)) return BarButton::Fullscreen;
     if (::PtInRect(&buttons_.close, pt))      return BarButton::Close;
     return BarButton::None;
@@ -575,6 +587,7 @@ void ViewerWindow::RecomputeBarLayout(int clientWidth) {
 
     place(buttons_.close, 0);
     place(buttons_.fullscreen, 0);
+    place(buttons_.pin, 0);
     place(buttons_.maximize, 0);
     place(buttons_.minimize, 0);
     place(buttons_.fit, 12);
@@ -756,19 +769,8 @@ void ViewerWindow::ZoomAt(POINT pt, double factor) {
 }
 
 // ---------------------------------------------------------------------------
-// 无边框窗口：最大化 / 全屏
+// 无边框窗口：置顶 / 最大化 / 全屏
 // ---------------------------------------------------------------------------
-RECT ViewerWindow::WorkAreaFor(HWND hwnd) {
-    MONITORINFO monitor{};
-    monitor.cbSize = sizeof(monitor);
-    if (::GetMonitorInfo(::MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &monitor)) {
-        return monitor.rcWork;
-    }
-    RECT work{};
-    ::SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0);
-    return work;
-}
-
 RECT ViewerWindow::MonitorAreaFor(HWND hwnd) {
     MONITORINFO monitor{};
     monitor.cbSize = sizeof(monitor);
@@ -785,32 +787,45 @@ void ViewerWindow::ApplyPlacement(const RECT& rect, HWND insertAfter, UINT flags
                    flags | SWP_NOACTIVATE);
 }
 
+void ViewerWindow::ApplyTopmostState() {
+    if (!hwnd_) {
+        return;
+    }
+    ::SetWindowPos(hwnd_, (pinned_ || fullscreen_) ? HWND_TOPMOST : HWND_NOTOPMOST,
+                   0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+}
+
+void ViewerWindow::TogglePin() {
+    pinned_ = !pinned_;
+    ApplyTopmostState();
+    Invalidate();
+}
+
 void ViewerWindow::ToggleMaximize() {
     if (fullscreen_) {
         return;
     }
-    if (maximized_) {
-        ApplyPlacement(normalRect_, nullptr, SWP_NOZORDER);
-        maximized_ = false;
-    } else {
-        ::GetWindowRect(hwnd_, &normalRect_);
-        ApplyPlacement(WorkAreaFor(hwnd_), nullptr, SWP_NOZORDER);
-        maximized_ = true;
-    }
-    Invalidate();
+    ::ShowWindow(hwnd_, ::IsZoomed(hwnd_) ? SW_RESTORE : SW_MAXIMIZE);
 }
 
 void ViewerWindow::ToggleFullscreen() {
     if (fullscreen_) {
-        ApplyPlacement(fullscreenRestoreRect_, HWND_NOTOPMOST, SWP_NOZORDER);
         fullscreen_ = false;
-        maximized_ = fullscreenWasMaximized_;
+        ApplyPlacement(fullscreenRestoreRect_, nullptr, SWP_NOZORDER);
+        if (fullscreenWasMaximized_) {
+            ::ShowWindow(hwnd_, SW_MAXIMIZE);
+        }
+        ApplyTopmostState();
     } else {
+        fullscreenWasMaximized_ = ::IsZoomed(hwnd_) != FALSE;
+        if (fullscreenWasMaximized_) {
+            ::ShowWindow(hwnd_, SW_RESTORE);
+        }
         ::GetWindowRect(hwnd_, &fullscreenRestoreRect_);
-        fullscreenWasMaximized_ = maximized_;
         maximized_ = false;
-        ApplyPlacement(MonitorAreaFor(hwnd_), HWND_TOPMOST, SWP_NOZORDER);
+        ApplyPlacement(MonitorAreaFor(hwnd_), nullptr, SWP_NOZORDER);
         fullscreen_ = true;
+        ApplyTopmostState();
         hoveredButton_ = BarButton::None;
     }
     Invalidate();

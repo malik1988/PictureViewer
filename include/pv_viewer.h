@@ -55,8 +55,9 @@ private:
 
     void ToggleMaximize();
     void ToggleFullscreen();
+    void TogglePin();
+    void ApplyTopmostState();
     void ApplyPlacement(const RECT& rect, HWND insertAfter, UINT flags);
-    static RECT WorkAreaFor(HWND hwnd);
     static RECT MonitorAreaFor(HWND hwnd);
 
     HWND hwnd_ = nullptr;
@@ -77,13 +78,9 @@ private:
     double dragOffsetStartX_ = 0.0;
     double dragOffsetStartY_ = 0.0;
 
-    bool draggingWindow_ = false;
-    POINT windowDragStart_{};
-    POINT windowPosStart_{};
-
     bool maximized_ = false;
+    bool pinned_ = false;
     bool fullscreen_ = false;
-    RECT normalRect_{};
     RECT fullscreenRestoreRect_{};
     bool fullscreenWasMaximized_ = false;
 

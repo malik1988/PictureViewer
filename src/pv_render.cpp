@@ -84,6 +84,19 @@ void DrawMaximizeIcon(Gdiplus::Graphics& g, const RECT& r, bool hovered, bool ma
     }
 }
 
+void DrawPinIcon(Gdiplus::Graphics& g, const RECT& r, bool hovered, bool pinned) {
+    FillRect(g, r, pinned ? Gdiplus::Color(255, 48, 104, 126)
+                          : ButtonColor(hovered, false));
+    const Gdiplus::PointF c = Center(r);
+    const Gdiplus::Color color = pinned ? Gdiplus::Color(255, 130, 232, 236)
+                                        : Gdiplus::Color(255, 228, 228, 234);
+    Gdiplus::Pen pen(color, 1.4f);
+    Gdiplus::SolidBrush brush(color);
+    g.FillEllipse(&brush, c.X - 3.5f, c.Y - 6.0f, 7.0f, 7.0f);
+    g.DrawLine(&pen, c.X - 1.0f, c.Y + 0.5f, c.X + 4.0f, c.Y + 6.5f);
+    g.DrawLine(&pen, c.X + 1.0f, c.Y + 6.5f, c.X + 7.0f, c.Y + 6.5f);
+}
+
 void DrawFullscreenIcon(Gdiplus::Graphics& g, const RECT& r, bool hovered) {
     FillRect(g, r, ButtonColor(hovered, false));
     const float l = static_cast<float>(r.left) + 8.0f;
@@ -137,7 +150,8 @@ void DrawHelp(Gdiplus::Graphics& g, const RECT& content) {
         { L"", 0 },
         { L"窗口", 1 },
         { L"  拖动顶部信息栏移动窗口，双击信息栏最大化 / 恢复", 0 },
-        { L"  F11 切换全屏，Esc 退出全屏或关闭程序", 0 },
+        { L"  拖到屏幕边缘自动排版，Win+\u2190 / \u2192 占据左 / 右半屏", 0 },
+        { L"  P 置顶 / 取消置顶，F11 全屏，Esc 退出", 0 },
         { L"", 0 },
         { L"文件关联", 1 },
         { L"  Ctrl+A 注册关联    Ctrl+D 取消关联", 0 },
@@ -265,6 +279,7 @@ void Renderer::Draw(HDC dc,
                     BarButton hovered,
                     bool showBar,
                     bool maximized,
+                    bool pinned,
                     bool fullscreen) {
     if (!dc) {
         return;
@@ -309,6 +324,7 @@ void Renderer::Draw(HDC dc,
         DrawFitIcon(g, buttons.fit, hovered == BarButton::Fit);
         DrawMinimizeIcon(g, buttons.minimize, hovered == BarButton::Minimize);
         DrawMaximizeIcon(g, buttons.maximize, hovered == BarButton::Maximize, maximized);
+        DrawPinIcon(g, buttons.pin, hovered == BarButton::Pin, pinned);
         DrawFullscreenIcon(g, buttons.fullscreen, hovered == BarButton::Fullscreen);
         DrawCloseIcon(g, buttons.close, hovered == BarButton::Close);
     }

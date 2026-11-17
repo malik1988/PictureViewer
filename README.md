@@ -37,8 +37,10 @@ When no image is open, the app shows a built-in cheat sheet so you can get start
 - 右键或方向键翻看同一文件夹里的其他图片。 / Right-click or use the arrow keys to browse other pictures in the same folder.
 - 支持常见格式：JPG、PNG、GIF、BMP、TIFF、WEBP、ICO 等。 / Supports common formats: JPG, PNG, GIF, BMP, TIFF, WEBP, ICO and more.
 - 支持全屏浏览、拖拽图片到窗口打开。 / Fullscreen mode and drag-and-drop to open an image.
+- 一键置顶，让图片始终显示在其他窗口前面。 / Pin the window so your image always stays on top.
+- 支持 Windows 贴靠排版：拖到屏幕边缘即可半屏或四分之一屏排列。 / Works with Windows Snap: drag to a screen edge to arrange half or quarter screen layouts.
 - 可把常见图片格式关联到本程序。 / Can be set as the default app for your image files.
-- 纯黑背景、无边框窗口，顶部按钮可最大化、全屏和关闭。 / Borderless window with a black canvas and simple minimize, maximize, fullscreen and close buttons.
+- 纯黑背景、无边框窗口，顶部按钮可最大化、全屏、置顶和关闭。 / Borderless window with a black canvas and simple minimize, maximize, fullscreen, pin and close buttons.
 
 ---
 
@@ -63,9 +65,12 @@ When no image is open, the app shows a built-in cheat sheet so you can get start
 | `F` / `1` | 适合窗口 / 100% 原始大小 / Fit to window / actual size |
 | `+` / `-` | 放大 / 缩小 / Zoom in / zoom out |
 | `F11` | 进入或退出全屏 / Enter or exit fullscreen |
+| `P` | 置顶或取消置顶 / Pin or unpin the window |
 | `Esc` | 退出全屏；普通窗口下关闭程序 / Exit fullscreen, or close the app |
-| 拖动顶部信息栏 / Drag the top bar | 移动窗口 / Move the window |
+| 拖动顶部信息栏 / Drag the top bar | 移动窗口；拖到屏幕边缘自动排版 / Move the window; drag to an edge to snap |
 | 双击顶部信息栏 / Double-click the top bar | 最大化或还原窗口 / Maximize or restore the window |
+| `Win` + `←` / `→` | 贴靠到左 / 右半屏 / Snap to the left / right half |
+| `Win` + `↑` / `↓` | 最大化 / 还原并缩小 / Maximize / restore and shrink |
 
 ### 关联图片格式 / Set as default image viewer
 
@@ -98,6 +103,16 @@ Check that the file is not damaged, or try saving it in another format. Common f
 **全屏后怎么退出？ / How do I leave fullscreen?**
 
 按 `F11` 或 `Esc`。 / Press `F11` or `Esc`.
+
+**怎么让窗口一直显示在最前面？ / How do I keep the window on top?**
+
+点击标题栏上的图钉按钮，或按 `P`。再次操作即可取消。
+Click the pin button in the title bar, or press `P`. Do it again to unpin.
+
+**能和 Windows 一起分屏吗？ / Can I snap it beside other windows?**
+
+可以。把标题栏拖到屏幕左/右边缘即可半屏排列，也可以使用 `Win` + 方向键。
+Yes. Drag the title bar to the left or right edge to snap it, or use `Win` + the arrow keys.
 
 ---
 

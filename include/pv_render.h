@@ -12,8 +12,9 @@ enum class BarButton {
     Fit = 2,
     Minimize = 3,
     Maximize = 4,
-    Fullscreen = 5,
-    Close = 6,
+    Pin = 5,
+    Fullscreen = 6,
+    Close = 7,
 };
 
 struct ViewTransform {
@@ -29,6 +30,7 @@ struct ButtonRects {
     RECT fit{};
     RECT minimize{};
     RECT maximize{};
+    RECT pin{};
     RECT fullscreen{};
     RECT close{};
 };
@@ -63,6 +65,7 @@ public:
                      BarButton hovered,
                      bool showBar,
                      bool maximized,
+                     bool pinned,
                      bool fullscreen);
 
     static double FitZoom(const ImageDocument& doc, int contentWidth, int contentHeight);
