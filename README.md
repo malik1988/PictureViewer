@@ -1,130 +1,109 @@
+<p align="center">
+  <img src="resources/picture_viewer.ico" width="96" alt="Picture Viewer 图标 / icon">
+</p>
+
 # Picture Viewer
 
-一个仅使用 **Win32 API + C++17** 实现的轻量级图片查看器，不依赖 MFC / Qt / wxWidgets 等任何第三方 UI 框架。
+轻量、快速、界面干净的图片查看器。打开图片、放大细节、翻看同目录照片，就这么简单。
+A light, fast image viewer with a clean interface. Open a picture, zoom in on details, and browse photos in the same folder — nothing else.
 
-## 功能
+[下载最新版 / Download the latest version](https://github.com/malik1988/PictureViewer/releases/latest)
 
-- **无边框窗口**（`WS_POPUP`），自绘标题栏：最小化 / 最大化·恢复 / 全屏 / 关闭按钮，以及上一张 / 下一张 / 适应窗口按钮。
-- 拖动标题栏空白处移动窗口，双击标题栏最大化/恢复；窗口四边和四角支持鼠标拖拽调整大小。
-- 纯黑背景、居中显示、顶部深色信息栏（标题 / 缩放比例 / 文件名 / 分辨率 / 文件大小）。
-- 未打开任何文件时，在黑色区域显示软件介绍与全部交互说明。
-- GDI+ `InterpolationModeHighQualityBicubic` 双三次插值渲染。
-- 鼠标滚轮以指针为锚点平滑缩放（带缓动动画）。
-- 图片大于视口时按住左键拖拽平移，边界自动限制。
-- 左键双击在「100% 原始比例」和「适应窗口」之间切换。
-- 右键切换到同目录下一张；顶部 `‹` `›` 按钮或键盘 `←` `→` 切换上一张/下一张。
-- 支持 JPG / PNG / BMP / GIF / TIFF / ICO / JXR；WEBP 通过 libwebp 或系统 WIC 编解码器支持。
-- 支持拖放文件到窗口打开，支持命令行传入文件路径。
-- 内置文件关联注册/注销（Ctrl+A / Ctrl+D），另附 `associate.reg`。
+---
 
-## 快捷键
+## 截图 / Screenshots
 
-| 操作 | 功能 |
+### 浏览图片 / Viewing a photo
+
+![Picture Viewer 浏览界面](docs/screenshots/viewing.png)
+
+顶部信息栏会显示缩放比例、文件名、尺寸和文件大小。
+The bar at the top shows the zoom level, file name, image size and file size.
+
+### 首次打开 / Opening the app with no image
+
+![Picture Viewer 帮助界面](docs/screenshots/empty.png)
+
+没有打开图片时，程序会直接显示操作说明，不需要先查文档。
+When no image is open, the app shows a built-in cheat sheet so you can get started right away.
+
+---
+
+## 功能 / Features
+
+- 启动快、体积小巧，界面只有图片本身。 / Starts instantly, stays tiny, and keeps the focus on your image.
+- 滚轮以鼠标位置为中心平滑缩放，放大后还能拖动画面。 / Smooth zoom centered on your cursor, with easy drag-to-pan when zoomed in.
+- 双击即可在「原始大小」和「适合窗口」之间切换。 / Double-click to switch between actual size and fit-to-window.
+- 右键或方向键翻看同一文件夹里的其他图片。 / Right-click or use the arrow keys to browse other pictures in the same folder.
+- 支持常见格式：JPG、PNG、GIF、BMP、TIFF、WEBP、ICO 等。 / Supports common formats: JPG, PNG, GIF, BMP, TIFF, WEBP, ICO and more.
+- 支持全屏浏览、拖拽图片到窗口打开。 / Fullscreen mode and drag-and-drop to open an image.
+- 可把常见图片格式关联到本程序。 / Can be set as the default app for your image files.
+- 纯黑背景、无边框窗口，顶部按钮可最大化、全屏和关闭。 / Borderless window with a black canvas and simple minimize, maximize, fullscreen and close buttons.
+
+---
+
+## 使用方法 / How to use
+
+### 打开图片 / Opening images
+
+- 直接把图片拖到窗口里。 / Drag an image into the window.
+- 双击 `PictureViewer.exe`，再把图片拖进来。 / Double-click `PictureViewer.exe`, then drop an image in.
+- 在命令行中传入图片路径，例如 `PictureViewer.exe "D:\照片\海边.jpg"`。 / Pass a file path on the command line, for example `PictureViewer.exe "D:\Photos\beach.jpg"`.
+
+### 鼠标和键盘 / Mouse and keyboard
+
+| 操作 / Action | 功能 / What it does |
 | --- | --- |
-| 滚轮 | 以指针为中心缩放 |
-| 左键拖拽 | 平移 |
-| 左键双击 | 100% / 适应窗口切换 |
-| 右键 | 下一张 |
-| 拖动标题栏 | 移动无边框窗口 |
-| 双击标题栏 | 最大化 / 恢复 |
-| `←` / `→` | 上一张 / 下一张 |
-| `Home` / `End` | 第一张 / 最后一张 |
-| `F` | 适应窗口 |
-| `1` | 100% |
-| `+` / `-` | 放大 / 缩小 |
-| `F11` | 切换全屏（隐藏标题栏） |
-| `Esc` | 退出全屏；非全屏时退出程序 |
-| `Ctrl+A` | 注册文件关联 |
-| `Ctrl+D` | 取消文件关联 |
+| 滚轮 / Scroll wheel | 以鼠标指针为中心缩放 / Zoom in or out around the pointer |
+| 按住左键拖动 / Drag with left button | 移动放大后的图片 / Move the image when zoomed in |
+| 左键双击 / Double-click | 100% 原始大小与适合窗口之间切换 / Toggle between 100% and fit-to-window |
+| 右键 / Right-click | 下一张图片 / Next picture |
+| `←` / `→` | 上一张 / 下一张 / Previous / next picture |
+| `Home` / `End` | 第一张 / 最后一张 / First / last picture |
+| `F` / `1` | 适合窗口 / 100% 原始大小 / Fit to window / actual size |
+| `+` / `-` | 放大 / 缩小 / Zoom in / zoom out |
+| `F11` | 进入或退出全屏 / Enter or exit fullscreen |
+| `Esc` | 退出全屏；普通窗口下关闭程序 / Exit fullscreen, or close the app |
+| 拖动顶部信息栏 / Drag the top bar | 移动窗口 / Move the window |
+| 双击顶部信息栏 / Double-click the top bar | 最大化或还原窗口 / Maximize or restore the window |
 
-## 工程结构
+### 关联图片格式 / Set as default image viewer
 
-```
-picviewer/
-├── CMakeLists.txt
-├── README.md
-├── associate.reg
-├── resources/
-│   ├── picture_viewer.ico  # 多尺寸程序图标
-│   └── picture_viewer.rc   # 图标 + 版本信息资源
-├── tools/
-│   └── make_icon.ps1       # 图标生成脚本
-├── include/
-│   ├── pv_common.h      # RAII 包装、GDI+/COM 生命周期、工具函数
-│   ├── pv_image.h       # ImageDocument / ImageLoader / ImageList
-│   ├── pv_render.h      # ViewTransform / BackBuffer / Renderer
-│   ├── pv_viewer.h      # ViewerWindow（窗口与交互）
-│   └── pv_registry.h    # 文件关联
-└── src/
-    ├── main.cpp         # wWinMain、消息循环
-    ├── pv_image.cpp     # WIC / GDI+ / libwebp 解码与目录枚举
-    ├── pv_render.cpp    # 双三次缩放绘制与信息栏
-    ├── pv_viewer.cpp    # WndProc 与鼠标/键盘处理
-    └── pv_registry.cpp  # 注册表操作
-```
+按 `Ctrl+A` 即可把常见图片格式关联到 Picture Viewer（只对当前用户生效，不需要管理员权限）。
+Press `Ctrl+A` to associate common image formats with Picture Viewer. It only affects your own account and does not need administrator rights.
 
-## 构建（Windows）
+按 `Ctrl+D` 取消关联。 / Press `Ctrl+D` to remove the association.
 
-环境（本机）：
-- Visual Studio 2026 Community，CMake 生成器 `Visual Studio 18 2026`
-- CMake：`D:\Software\Dev\cmake-4.4.4-windows-x86_64\bin\cmake.exe`
+也可以双击发布包里的 `associate.reg`，然后按提示修改其中的程序路径。
+You can also run `associate.reg` from the download and update the program path inside it.
 
-```powershell
-& "D:\Software\Dev\cmake-4.4.4-windows-x86_64\bin\cmake.exe" -S . -B build -G "Visual Studio 18 2026" -A x64
-& "D:\Software\Dev\cmake-4.4.4-windows-x86_64\bin\cmake.exe" --build build --config Release
-```
+---
 
-生成的可执行文件：`build/Release/PictureViewer.exe`
+## 常见问题 / FAQ
 
-### 可选：启用 libwebp（推荐，保证 WEBP 支持）
+**需要安装吗？ / Does it need installation?**
 
-```powershell
-$env:VCPKG_ROOT = "D:\Projects\vcpkg"
-$env:VCPKG_SSL_REVOKE_BEST_EFFORT = "1"
-& "D:\Projects\vcpkg\vcpkg.exe" install libwebp:x64-windows
+不需要。解压压缩包，运行 `PictureViewer.exe` 即可；删除文件夹即可卸载。
+No. Unzip the archive and run `PictureViewer.exe`. To uninstall, just delete the folder.
 
-& "D:\Software\Dev\cmake-4.4.4-windows-x86_64\bin\cmake.exe" -S . -B build-webp `
-  -G "Visual Studio 18 2026" -A x64 `
-  -DCMAKE_TOOLCHAIN_FILE=D:/Projects/vcpkg/scripts/buildsystems/vcpkg.cmake
-& "D:\Software\Dev\cmake-4.4.4-windows-x86_64\bin\cmake.exe" --build build-webp --config Release
-```
+**支持哪些系统？ / Which Windows versions are supported?**
 
-生成的可执行文件：`build-webp/Release/PictureViewer.exe`（同目录会附带 `libwebp.dll` 等运行时）。
+Windows 10 及更高版本（64 位）。 / Windows 10 or newer, 64-bit.
 
-若未找到 libwebp，程序仍能通过 WIC 解码 WEBP（前提是系统安装了 WebP 编解码器，例如 Microsoft WebP Image Extensions）。
+**打不开某张图片怎么办？ / What if an image will not open?**
 
-## 发布包
+请确认文件没有损坏，或尝试用其他格式重新保存。支持 JPG、PNG、GIF、BMP、TIFF、WEBP、ICO 等常见格式。
+Check that the file is not damaged, or try saving it in another format. Common formats such as JPG, PNG, GIF, BMP, TIFF, WEBP and ICO are supported.
 
-免安装便携版请从 GitHub Releases 下载：`https://github.com/malik1988/PictureViewer/releases`。解压后直接运行 `PictureViewer.exe`。包内包含 WEBP 运行时（`libwebp.dll`、`libsharpyuv.dll`）、`associate.reg`（文件关联）与使用说明。
+**全屏后怎么退出？ / How do I leave fullscreen?**
 
-## 关键实现说明
+按 `F11` 或 `Esc`。 / Press `F11` or `Esc`.
 
-### 滚轮以指针为中心的缩放
+---
 
-缩放前先求出指针下方的图像坐标，缩放后再把该点放回指针位置：
+## 下载 / Download
 
-```cpp
-imageX = (pointerX - offsetX) / oldZoom;
-imageY = (pointerY - offsetY) / oldZoom;
-newOffsetX = pointerX - imageX * newZoom;
-newOffsetY = pointerY - imageY * newZoom;
-```
+最新版本与历史版本都在 GitHub Releases：
+Latest and previous versions are available on GitHub Releases:
 
-### 双三次插值
-
-```cpp
-graphics.SetInterpolationMode(Gdiplus::InterpolationModeHighQualityBicubic);
-graphics.SetPixelOffsetMode(Gdiplus::PixelOffsetModeHighQuality);
-graphics.DrawImage(image, destRect, 0, 0, srcW, srcH, Gdiplus::UnitPixel);
-```
-
-### 资源管理
-
-- `GdiplusLifetime` / `ComLifetime`：进程级初始化与逆序释放。
-- `ScopedGdiObject` / `ScopedWindowDc` / `ScopedMemDc`：GDI 句柄与 HDC 的 RAII。
-- `std::unique_ptr<Gdiplus::Image>`：图像对象智能指针。
-- `ImageDocument::backingPixels` 声明在 `bitmap` 之前，确保像素缓冲区活得比引用它的 GDI+ Bitmap 更久。
-
-### 文件关联
-
-`pv_registry.cpp` 写入 `HKCU\Software\Classes`，无需管理员权限，写好以后调用 `SHChangeNotify(SHCNE_ASSOCCHANGED, ...)` 通知资源管理器刷新。
+https://github.com/malik1988/PictureViewer/releases
