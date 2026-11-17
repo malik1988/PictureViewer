@@ -1,6 +1,9 @@
 # CMake / MSBuild 构建产物
 /build/
 /build-webp/
+
+# 发布包请放到 GitHub Releases，不纳入源码仓库
+/release/
 /CMakeFiles/
 *.user
 *.suo

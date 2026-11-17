@@ -95,7 +95,7 @@ $env:VCPKG_SSL_REVOKE_BEST_EFFORT = "1"
 
 ## 发布包
 
-`release/PictureViewer-v1.0.0.zip` 为免安装便携版，解压后直接运行 `PictureViewer.exe`。包内包含 WEBP 运行时（`libwebp.dll`、`libsharpyuv.dll`）、`associate.reg`（文件关联）与使用说明。
+免安装便携版请从 GitHub Releases 下载：`https://github.com/malik1988/PictureViewer/releases`。解压后直接运行 `PictureViewer.exe`。包内包含 WEBP 运行时（`libwebp.dll`、`libsharpyuv.dll`）、`associate.reg`（文件关联）与使用说明。
 
 ## 关键实现说明
 
