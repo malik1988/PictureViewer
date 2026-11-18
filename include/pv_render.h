@@ -24,6 +24,12 @@ struct ViewTransform {
     double offsetY = 0.0;
 };
 
+struct View3D {
+    float yaw = 0.6f;
+    float pitch = -0.35f;
+    float distance = 3.2f;
+};
+
 struct ButtonRects {
     RECT prev{};
     RECT next{};
@@ -60,6 +66,7 @@ public:
                      const RECT& client,
                      const ImageDocument* doc,
                      const ViewTransform& view,
+                     const View3D& view3d,
                      const std::wstring& infoText,
                      const ButtonRects& buttons,
                      BarButton hovered,

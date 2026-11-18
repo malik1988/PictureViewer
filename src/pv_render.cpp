@@ -147,6 +147,8 @@ void DrawHelp(Gdiplus::Graphics& g, const RECT& content) {
         { L"  右键 / \u2190 \u2192  上一张 / 下一张", 0 },
         { L"  F / 1        适应窗口 / 100%", 0 },
         { L"  + / -        放大 / 缩小", 0 },
+        { L"  3D 模型      左键旋转，滚轮拉近拉远，双击重置视角", 0 },
+        { L"  支持 OBJ / STL / PLY / OFF / GLB / glTF", 0 },
         { L"", 0 },
         { L"窗口", 1 },
         { L"  拖动顶部信息栏移动窗口，双击信息栏最大化 / 恢复", 0 },
@@ -212,6 +214,143 @@ void DrawHelp(Gdiplus::Graphics& g, const RECT& content) {
     }
 }
 
+struct TransformedVertex {
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+    float sx = 0.0f;
+    float sy = 0.0f;
+    float sz = 0.0f;
+};
+
+float Edge(const TransformedVertex& a, const TransformedVertex& b, float px, float py) {
+    return (b.sx - a.sx) * (py - a.sy) - (b.sy - a.sy) * (px - a.sx);
+}
+
+// 轻量软件光栅化：足够验证 3D 文件加载与交互，不引入额外依赖。
+void DrawMesh(Gdiplus::Graphics& g, const RECT& content, const Mesh3D& mesh, const View3D& view) {
+    const int width = content.right - content.left;
+    const int height = content.bottom - content.top;
+    if (width <= 0 || height <= 0 || !mesh.valid()) {
+        return;
+    }
+
+    Gdiplus::Bitmap framebuffer(width, height, PixelFormat32bppARGB);
+    Gdiplus::BitmapData data{};
+    Gdiplus::Rect frameRect(0, 0, width, height);
+    if (framebuffer.LockBits(&frameRect, Gdiplus::ImageLockModeWrite,
+                             PixelFormat32bppARGB, &data) != Gdiplus::Ok) {
+        return;
+    }
+
+    BYTE* pixels = reinterpret_cast<BYTE*>(data.Scan0);
+    for (int y = 0; y < height; ++y) {
+        BYTE* row = pixels + static_cast<std::size_t>(y) * data.Stride;
+        for (int x = 0; x < width; ++x) {
+            row[x * 4 + 0] = 0;
+            row[x * 4 + 1] = 0;
+            row[x * 4 + 2] = 0;
+            row[x * 4 + 3] = 255;
+        }
+    }
+    std::vector<float> zBuffer(static_cast<std::size_t>(width) * height, 1.0e9f);
+
+    const float cy = std::cos(view.yaw);
+    const float sy = std::sin(view.yaw);
+    const float cp = std::cos(view.pitch);
+    const float sp = std::sin(view.pitch);
+    const float focal = (height * 0.5f) / std::tan(25.0f * 3.14159265f / 180.0f);
+    const float centerX = width * 0.5f;
+    const float centerY = height * 0.5f;
+
+    std::vector<TransformedVertex> transformed(mesh.vertices.size());
+    for (std::size_t i = 0; i < mesh.vertices.size(); ++i) {
+        const MeshVertex& v = mesh.vertices[i];
+        const float x1 = v.x * cy + v.z * sy;
+        const float z1 = -v.x * sy + v.z * cy;
+        const float y2 = v.y * cp - z1 * sp;
+        const float z2 = v.y * sp + z1 * cp;
+
+        TransformedVertex& t = transformed[i];
+        t.x = x1; t.y = y2; t.z = z2;
+        t.sz = z2 + view.distance;
+        if (t.sz <= 0.1f) {
+            continue;
+        }
+        t.sx = centerX + x1 * focal / t.sz;
+        t.sy = centerY - y2 * focal / t.sz;
+    }
+
+    const float lx = -0.38f, ly = -0.62f, lz = -0.69f;
+    for (const MeshTriangle& tri : mesh.triangles) {
+        TransformedVertex a = transformed[tri.a];
+        TransformedVertex b = transformed[tri.b];
+        TransformedVertex c = transformed[tri.c];
+        if (a.sz <= 0.1f || b.sz <= 0.1f || c.sz <= 0.1f) {
+            continue;
+        }
+
+        float area = Edge(a, b, c.sx, c.sy);
+        if (std::abs(area) < 1e-6f) {
+            continue;
+        }
+        if (area < 0.0f) {
+            std::swap(b, c);
+            area = -area;
+        }
+
+        const float ux = b.x - a.x, uy = b.y - a.y, uz = b.z - a.z;
+        const float vx = c.x - a.x, vy = c.y - a.y, vz = c.z - a.z;
+        float nx = uy * vz - uz * vy;
+        float ny = uz * vx - ux * vz;
+        float nz = ux * vy - uy * vx;
+        const float length = std::sqrt(nx * nx + ny * ny + nz * nz);
+        float intensity = 0.55f;
+        if (length > 1e-6f) {
+            nx /= length; ny /= length; nz /= length;
+            intensity = 0.30f + 0.70f * std::abs(nx * lx + ny * ly + nz * lz);
+        }
+        const BYTE red = static_cast<BYTE>((std::min)(255.0f, 215.0f * intensity));
+        const BYTE green = static_cast<BYTE>((std::min)(255.0f, 226.0f * intensity));
+        const BYTE blue = static_cast<BYTE>((std::min)(255.0f, 242.0f * intensity));
+
+        const int minX = (std::max)(0, static_cast<int>(std::floor((std::min)({ a.sx, b.sx, c.sx }))));
+        const int maxX = (std::min)(width - 1, static_cast<int>(std::ceil((std::max)({ a.sx, b.sx, c.sx }))));
+        const int minY = (std::max)(0, static_cast<int>(std::floor((std::min)({ a.sy, b.sy, c.sy }))));
+        const int maxY = (std::min)(height - 1, static_cast<int>(std::ceil((std::max)({ a.sy, b.sy, c.sy }))));
+        const float invArea = 1.0f / area;
+
+        for (int y = minY; y <= maxY; ++y) {
+            BYTE* row = pixels + static_cast<std::size_t>(y) * data.Stride;
+            for (int x = minX; x <= maxX; ++x) {
+                const float px = static_cast<float>(x) + 0.5f;
+                const float py = static_cast<float>(y) + 0.5f;
+                const float wa = Edge(b, c, px, py) * invArea;
+                const float wb = Edge(c, a, px, py) * invArea;
+                const float wc = Edge(a, b, px, py) * invArea;
+                if (wa < 0.0f || wb < 0.0f || wc < 0.0f) {
+                    continue;
+                }
+                const float z = wa * a.sz + wb * b.sz + wc * c.sz;
+                const std::size_t index = static_cast<std::size_t>(y) * width + x;
+                if (z >= zBuffer[index]) {
+                    continue;
+                }
+                zBuffer[index] = z;
+                row[x * 4 + 0] = blue;
+                row[x * 4 + 1] = green;
+                row[x * 4 + 2] = red;
+                row[x * 4 + 3] = 255;
+            }
+        }
+    }
+
+    framebuffer.UnlockBits(&data);
+    g.SetClip(Gdiplus::Rect(content.left, content.top, width, height));
+    g.DrawImage(&framebuffer, content.left, content.top, width, height);
+    g.ResetClip();
+}
+
 void DrawFullscreenHint(Gdiplus::Graphics& g, const RECT& content) {
     const float width = 190.0f;
     const float height = 24.0f;
@@ -274,6 +413,7 @@ void Renderer::Draw(HDC dc,
                     const RECT& client,
                     const ImageDocument* doc,
                     const ViewTransform& view,
+                    const View3D& view3d,
                     const std::wstring& infoText,
                     const ButtonRects& buttons,
                     BarButton hovered,
@@ -336,6 +476,14 @@ void Renderer::Draw(HDC dc,
 
     if (!doc || !doc->valid()) {
         DrawHelp(g, content);
+        if (fullscreen) {
+            DrawFullscreenHint(g, content);
+        }
+        return;
+    }
+
+    if (doc->is3d()) {
+        DrawMesh(g, content, *doc->mesh3d, view3d);
         if (fullscreen) {
             DrawFullscreenHint(g, content);
         }

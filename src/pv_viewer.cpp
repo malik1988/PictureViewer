@@ -246,12 +246,12 @@ void ViewerWindow::OnPaint() {
 
     const bool showBar = !fullscreen_;
     if (backBuffer_ && backBuffer_->Dc()) {
-        Renderer::Draw(backBuffer_->Dc(), client, document_.get(), view_,
+        Renderer::Draw(backBuffer_->Dc(), client, document_.get(), view_, view3d_,
                        infoText_, buttons_, hoveredButton_,
                        showBar, maximized_, pinned_, fullscreen_);
         backBuffer_->Present(hdc, clientWidth_, clientHeight_);
     } else {
-        Renderer::Draw(hdc, client, document_.get(), view_,
+        Renderer::Draw(hdc, client, document_.get(), view_, view3d_,
                        infoText_, buttons_, hoveredButton_,
                        showBar, maximized_, pinned_, fullscreen_);
     }
@@ -299,6 +299,13 @@ LRESULT ViewerWindow::OnNcHitTest(LPARAM lParam) {
 // ---------------------------------------------------------------------------
 void ViewerWindow::OnMouseWheel(int delta, POINT pt) {
     if (!document_) {
+        return;
+    }
+    if (document_->is3d()) {
+        const double factor = std::pow(0.9985, static_cast<double>(delta));
+        view3d_.distance = static_cast<float>(
+            ClampD(view3d_.distance * factor, 1.2, 18.0));
+        Invalidate();
         return;
     }
 
@@ -368,6 +375,16 @@ void ViewerWindow::OnMouseMove(POINT pt) {
 
     const int dx = pt.x - dragStart_.x;
     const int dy = pt.y - dragStart_.y;
+
+    if (document_ && document_->is3d()) {
+        view3d_.yaw += dx * 0.012f;
+        view3d_.pitch = static_cast<float>(
+            ClampD(view3d_.pitch + dy * 0.012f, -1.45, 1.45));
+        dragStart_ = pt;
+        Invalidate();
+        return;
+    }
+
     if (!dragMoved_ && (std::abs(dx) > 2 || std::abs(dy) > 2)) {
         dragMoved_ = true;
         StopAnimation();
@@ -600,6 +617,13 @@ void ViewerWindow::UpdateInfoText() {
         infoText_ = L"Picture Viewer    拖放图片到窗口以开始浏览";
         return;
     }
+    if (document_->is3d()) {
+        infoText_ = std::wstring(L"Picture Viewer    3D    ") +
+                    document_->fileName + L"    " +
+                    std::to_wstring(document_->mesh3d->triangles.size()) + L" 三角面    " +
+                    FormatBytes(document_->fileSize);
+        return;
+    }
     const int percent = static_cast<int>(std::llround(view_.zoom * 100.0));
     infoText_ = std::wstring(L"Picture Viewer    ") +
                 std::to_wstring(percent) + L"%    " +
@@ -663,7 +687,7 @@ void ViewerWindow::Invalidate() const {
 bool ViewerWindow::OpenFile(const std::wstring& path) {
     auto doc = ImageLoader::Load(path);
     if (!doc) {
-        ::MessageBoxW(hwnd_, (L"无法打开图片：\n" + path).c_str(),
+        ::MessageBoxW(hwnd_, (L"无法打开文件：\n" + path).c_str(),
                       L"Picture Viewer", MB_OK | MB_ICONWARNING);
         return false;
     }
@@ -712,6 +736,10 @@ void ViewerWindow::FitToWindow(bool animate) {
     if (!document_) {
         return;
     }
+    if (document_->is3d()) {
+        Reset3DView();
+        return;
+    }
     const RECT content = ContentRect();
     double zoom = Renderer::FitZoom(
         *document_, content.right - content.left, content.bottom - content.top);
@@ -733,6 +761,10 @@ void ViewerWindow::FitToWindow(bool animate) {
 }
 
 void ViewerWindow::ToggleActualSize() {
+    if (document_ && document_->is3d()) {
+        Reset3DView();
+        return;
+    }
     if (fitMode_) {
         if (!document_) {
             return;
@@ -753,6 +785,12 @@ void ViewerWindow::ZoomAt(POINT pt, double factor) {
     if (!document_) {
         return;
     }
+    if (document_->is3d()) {
+        view3d_.distance = static_cast<float>(
+            ClampD(view3d_.distance / factor, 1.2, 18.0));
+        Invalidate();
+        return;
+    }
     const RECT content = ContentRect();
     if (!::PtInRect(&content, pt)) {
         return;
@@ -766,6 +804,12 @@ void ViewerWindow::ZoomAt(POINT pt, double factor) {
 
     fitMode_ = false;
     StartAnimation(zoom, offsetX, offsetY);
+}
+
+void ViewerWindow::Reset3DView() {
+    view3d_ = View3D{};
+    UpdateInfoText();
+    Invalidate();
 }
 
 // ---------------------------------------------------------------------------

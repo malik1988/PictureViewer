@@ -48,6 +48,7 @@ private:
     void FitToWindow(bool animate);
     void ToggleActualSize();
     void ZoomAt(POINT pt, double factor);
+    void Reset3DView();
     void StartAnimation(double zoom, double offsetX, double offsetY);
     void StopAnimation();
     void ClampView(double& zoom, double& offsetX, double& offsetY) const;
@@ -68,6 +69,7 @@ private:
 
     ViewTransform view_;
     ViewTransform targetView_;
+    View3D view3d_;
     bool animating_ = false;
     bool fitMode_ = true;
 

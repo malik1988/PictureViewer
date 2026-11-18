@@ -1,14 +1,15 @@
 Windows Registry Editor Version 5.00
 
 ; ============================================================
-; 将 PictureViewer.exe 关联到常见图片格式（仅当前用户，无需管理员）。
-; 使用前请把下面两处的 C:\\Path\\To\\PictureViewer.exe
+; 将 PictureViewer.exe 关联到常见图片与 3D 模型格式（仅当前用户，无需管理员）。
+; 使用前请把下面三处的 C:\\Path\\To\\PictureViewer.exe
 ; 替换为本机实际路径，注意反斜杠要写成双份。
-; 也可以运行程序后按 Ctrl+A 自动完成关联。
+; 更推荐：运行程序后按 Ctrl+A 自动完成关联，无需手动改路径。
+; 按 Ctrl+D 可取消关联。
 ; ============================================================
 
 [HKEY_CURRENT_USER\Software\Classes\PictureViewer.Image.1]
-@="Picture Viewer Image"
+@="Picture Viewer File"
 
 [HKEY_CURRENT_USER\Software\Classes\PictureViewer.Image.1\DefaultIcon]
 @="\"C:\\Path\\To\\PictureViewer.exe\",0"
@@ -19,6 +20,7 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\Software\Classes\PictureViewer.Image.1\shell\open\command]
 @="\"C:\\Path\\To\\PictureViewer.exe\" \"%1\""
 
+; ---------- 图片 ----------
 [HKEY_CURRENT_USER\Software\Classes\.jpg]
 @="PictureViewer.Image.1"
 "PerceivedType"="image"
@@ -62,3 +64,22 @@ Windows Registry Editor Version 5.00
 [HKEY_CURRENT_USER\Software\Classes\.jxr]
 @="PictureViewer.Image.1"
 "PerceivedType"="image"
+
+; ---------- 3D 模型 ----------
+[HKEY_CURRENT_USER\Software\Classes\.obj]
+@="PictureViewer.Image.1"
+
+[HKEY_CURRENT_USER\Software\Classes\.stl]
+@="PictureViewer.Image.1"
+
+[HKEY_CURRENT_USER\Software\Classes\.ply]
+@="PictureViewer.Image.1"
+
+[HKEY_CURRENT_USER\Software\Classes\.off]
+@="PictureViewer.Image.1"
+
+[HKEY_CURRENT_USER\Software\Classes\.glb]
+@="PictureViewer.Image.1"
+
+[HKEY_CURRENT_USER\Software\Classes\.gltf]
+@="PictureViewer.Image.1"

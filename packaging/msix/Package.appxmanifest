@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <!-- 提交商店前：把 Name / Publisher / PublisherDisplayName 改成你自己的。
+       Publisher 必须与签名证书的主题(Name, CN=...)完全一致。 -->
+  <Identity
+    Name="Malik1988.PictureViewer"
+    Publisher="CN=ReplaceWithYourPublisher"
+    Version="1.2.0.0"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>Picture Viewer</DisplayName>
+    <PublisherDisplayName>Your Name</PublisherDisplayName>
+    <Logo>Images\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop"
+                        MinVersion="10.0.17763.0"
+                        MaxVersionTested="10.0.26100.0" />
+    <!-- exe 动态链接 CRT(MSVCP140/VCRUNTIME140)，声明桌面版 VC++ 运行时框架依赖。 -->
+    <PackageDependency Name="Microsoft.VCLibs.140.00.UWPDesktop"
+                       MinVersion="14.0.30704.0"
+                       Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="zh-cn" />
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="PictureViewer"
+                 Executable="PictureViewer.exe"
+                 EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="Picture Viewer"
+        Description="A lightweight, borderless image viewer for Windows."
+        BackgroundColor="transparent"
+        Square150x150Logo="Images\Square150x150Logo.png"
+        Square44x44Logo="Images\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Images\Wide310x150Logo.png" />
+      </uap:VisualElements>
+      <Extensions>
+        <!-- 商店版的文件关联：安装时由系统自动完成，无需程序内 Ctrl+A。 -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="pictureviewer.image">
+            <uap:DisplayName>Picture Viewer Image</uap:DisplayName>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.jpg</uap:FileType>
+              <uap:FileType>.jpeg</uap:FileType>
+              <uap:FileType>.jpe</uap:FileType>
+              <uap:FileType>.png</uap:FileType>
+              <uap:FileType>.bmp</uap:FileType>
+              <uap:FileType>.gif</uap:FileType>
+              <uap:FileType>.tif</uap:FileType>
+              <uap:FileType>.tiff</uap:FileType>
+              <uap:FileType>.webp</uap:FileType>
+              <uap:FileType>.ico</uap:FileType>
+              <uap:FileType>.jxr</uap:FileType>
+              <uap:FileType>.obj</uap:FileType>
+              <uap:FileType>.stl</uap:FileType>
+              <uap:FileType>.ply</uap:FileType>
+              <uap:FileType>.off</uap:FileType>
+              <uap:FileType>.glb</uap:FileType>
+              <uap:FileType>.gltf</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- 传统 Win32 桌面应用必须声明全信任能力。 -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

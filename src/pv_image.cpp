@@ -12,7 +12,8 @@ namespace {
 bool IsSupportedExtension(const std::wstring& ext) {
     static const wchar_t* kExts[] = {
         L"JPG", L"JPEG", L"PNG", L"BMP", L"GIF",
-        L"TIF", L"TIFF", L"WEBP", L"ICO", L"JXR", L"JPE"
+        L"TIF", L"TIFF", L"WEBP", L"ICO", L"JXR", L"JPE",
+        L"OBJ", L"STL", L"PLY", L"OFF", L"GLB", L"GLTF"
     };
     for (const wchar_t* e : kExts) {
         if (ext == e) {
@@ -170,6 +171,12 @@ std::unique_ptr<ImageDocument> ImageLoader::Load(const std::wstring& path) {
     if (GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &attributes)) {
         doc->fileSize = (static_cast<ULONGLONG>(attributes.nFileSizeHigh) << 32) |
                         attributes.nFileSizeLow;
+    }
+
+    // 3D 网格格式走内置解析器。
+    if (MeshLoader::IsSupported(doc->format)) {
+        doc->mesh3d = MeshLoader::Load(path);
+        return doc->mesh3d ? std::move(doc) : nullptr;
     }
 
     // WEBP 先试 libwebp（若编译进来了），这样不依赖系统是否装了 WIC 编解码器。

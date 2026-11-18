@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pv_common.h"
+#include "pv_mesh.h"
 
 namespace pv {
 
@@ -16,9 +17,11 @@ struct ImageDocument {
 
     std::vector<BYTE> backingPixels;
     std::unique_ptr<Gdiplus::Image> bitmap;
+    std::unique_ptr<Mesh3D> mesh3d;
 
+    bool is3d() const noexcept { return mesh3d && mesh3d->valid(); }
     bool valid() const noexcept {
-        return bitmap && bitmap->GetLastStatus() == Gdiplus::Ok;
+        return is3d() || (bitmap && bitmap->GetLastStatus() == Gdiplus::Ok);
     }
 };
 

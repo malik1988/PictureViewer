@@ -4,12 +4,28 @@ namespace pv {
 namespace {
 
 constexpr const wchar_t* kProgId = L"PictureViewer.Image.1";
-constexpr const wchar_t* kProgDescription = L"Picture Viewer Image";
+constexpr const wchar_t* kProgDescription = L"Picture Viewer File";
 
 static const wchar_t* const kExtensions[] = {
+    // 图片
     L".jpg", L".jpeg", L".jpe", L".png", L".bmp",
-    L".gif", L".tif", L".tiff", L".webp", L".ico", L".jxr"
+    L".gif", L".tif", L".tiff", L".webp", L".ico", L".jxr",
+    // 3D 模型
+    L".obj", L".stl", L".ply", L".off", L".glb", L".gltf"
 };
+
+bool IsImageExtension(const wchar_t* ext) {
+    static const wchar_t* const kImageExtensions[] = {
+        L".jpg", L".jpeg", L".jpe", L".png", L".bmp",
+        L".gif", L".tif", L".tiff", L".webp", L".ico", L".jxr"
+    };
+    for (const wchar_t* image : kImageExtensions) {
+        if (_wcsicmp(ext, image) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
 
 // 写入 REG_SZ；键不存在时自动创建。
 bool SetStringValue(HKEY parent, const wchar_t* subKey, const wchar_t* name,
@@ -70,8 +86,10 @@ bool RegisterAssociations() {
         if (!SetStringValue(HKEY_CURRENT_USER, key.c_str(), nullptr, kProgId)) {
             return false;
         }
-        // 同时写入 UserChoice 之外的 PerceivedType，便于资源管理器识别为图片。
-        SetStringValue(HKEY_CURRENT_USER, key.c_str(), L"PerceivedType", L"image");
+        // 图片写入 PerceivedType=image 便于资源管理器识别；3D 模型不写。
+        if (IsImageExtension(ext)) {
+            SetStringValue(HKEY_CURRENT_USER, key.c_str(), L"PerceivedType", L"image");
+        }
     }
 
     // 通知 Shell 刷新关联缓存。

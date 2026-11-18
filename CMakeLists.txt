@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(PictureViewer
-    VERSION 1.1.0
+    VERSION 1.2.0
     DESCRIPTION "Lightweight native Win32 image viewer"
     LANGUAGES CXX RC)
 
@@ -16,6 +16,7 @@ endif()
 
 add_executable(PictureViewer WIN32
     src/main.cpp
+    src/pv_mesh.cpp
     src/pv_image.cpp
     src/pv_render.cpp
     src/pv_viewer.cpp
